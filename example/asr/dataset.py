@@ -118,43 +118,6 @@ def collate_data(batch):
     return mels, tokens, mel_lengths, token_lengths, texts, files
 
 
-def make_emit_targets(token, align, mask, blank=0):
-    token_align = []
-    token_i = 0
-
-    if len(token) < 1:
-        return [], []
-
-    for i, a in enumerate(align):
-        if a == token[token_i]:
-            token_align.append(i)
-            token_i += 1
-
-            if token_i == len(token):
-                break
-
-    new_targets = []
-    force_emits = []
-    emit_i = 0
-
-    for i, (a, m) in enumerate(zip(align, mask)):
-        if m == 1 or i in token_align:
-            new_targets.append(a)
-
-            if m == 1:
-                force_emits.append(emit_i)
-                emit_i += 1
-
-            else:
-                force_emits.append(-1)
-                emit_i += 1
-
-        else:
-            force_emits.append(-1)
-
-    return new_targets, force_emits
-
-
 def make_block_mask(batch_size, n_block, block_size):
     r = torch.randperm(batch_size * n_block * block_size).view(
         batch_size, n_block, block_size
@@ -168,6 +131,13 @@ def make_block_mask(batch_size, n_block, block_size):
 
 
 def get_symbol(state, targets_list):
+    """Convert sequence of ctc states into sequence of target tokens
+
+    Input:
+        state (List[int]): list of ctc states
+        targets_list (List[int]): token indices of targets
+    """
+
     if state % 2 == 0:
         symbol = 0
 
@@ -175,8 +145,6 @@ def get_symbol(state, targets_list):
         symbol = targets_list[state // 2]
 
     return symbol
-
-    return state
 
 
 def collate_data_imputer(batch):
@@ -238,75 +206,3 @@ def collate_data_imputer(batch):
         texts,
         files,
     )
-
-
-"""def collate_data_imputer(batch):
-    max_mel_len = max(b[0].shape[0] for b in batch)
-
-    batch_size = len(batch)
-    n_mels = batch[0][0].shape[1]
-
-    max_mel_len_reduce = math.ceil(max_mel_len / 4)
-
-    mels = torch.zeros(batch_size, max_mel_len, n_mels, dtype=torch.float32)
-
-    mel_lengths = torch.zeros(batch_size, dtype=torch.int64)
-    targets_ctc_lengths = torch.zeros(batch_size, dtype=torch.int64)
-
-    texts = []
-    files = []
-
-    mask_block = make_block_mask(batch_size, math.ceil(max_mel_len / 4 / 8), 8)[
-        :, :max_mel_len_reduce
-    ]
-    mask = torch.zeros_like(mask_block)
-    new_tokens = []
-
-    targets_ce = torch.zeros((batch_size, max_mel_len_reduce), dtype=torch.int64)
-
-    # max_text_len = max(len(b[1]) for b in batch)
-    # targets_full = torch.zeros((batch_size, max_text_len))
-
-    for i, (b, m) in enumerate(zip(batch, mask_block.tolist())):
-        mel, token, text, file, align, j = b
-
-        mel_len = mel.shape[0]
-
-        mels[i, :mel_len] = mel
-
-        texts.append(text)
-        files.append(file)
-
-        mel_lengths[i] = mel_len
-
-        mel_len_reduce = math.ceil(mel_len / 4)
-
-        mask[:, :mel_len_reduce] = torch.tensor(m[:mel_len_reduce])
-        new_tok = ctc_decode(make_ctc_targets(align, m[:mel_len_reduce]))
-        new_tokens.append(new_tok)
-        targets_ce[i, : len(align)] = torch.tensor(align)
-
-        # targets_full[i, : len(token)] = torch.tensor(token)
-
-    token_in = (1 - mask) * 1 + mask * targets_ce
-
-    max_token_len = max(len(l) for l in new_tokens)
-    targets_ctc = torch.zeros(batch_size, max_token_len, dtype=torch.int64)
-
-    for i, token in enumerate(new_tokens):
-        token_len = len(token)
-        targets_ctc[i, :token_len] = torch.tensor(token)
-        targets_ctc_lengths[i] = token_len
-
-    return (
-        mels,
-        token_in,
-        targets_ctc,
-        targets_ce,
-        mask,
-        mel_lengths,
-        targets_ctc_lengths,
-        texts,
-        files,
-        # targets_full,
-    )"""
