@@ -1,5 +1,5 @@
 # imputer-pytorch
-Implementation of Imputer: Sequence Modelling via Imputation and Dynamic Programming in PyTorch
+Implementation of Imputer: Sequence Modelling via Imputation and Dynamic Programming (https://arxiv.org/abs/2002.08926) in PyTorch
 
 # Usage
 
