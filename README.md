@@ -81,7 +81,8 @@ def get_symbol(state, targets_list):
 
     Input:
         state (List[int]): list of ctc states (e.g. from torch_imputer.best_alignment)
-        targets_list (List[int]): token indices of targets (e.g. targets that you will pass to ctc_loss or imputer_loss)
+        targets_list (List[int]): token indices of targets
+                                  (e.g. targets that you will pass to ctc_loss or imputer_loss)
     """
 
     if state % 2 == 0:
