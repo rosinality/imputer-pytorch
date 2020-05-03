@@ -94,6 +94,30 @@ def imputer_loss(
     reduction="mean",
     zero_infinity=False,
 ):
+    """The Imputer loss
+
+    Parameters:
+        log_prob (T, N, C): C = number of characters in alphabet including blank
+                            T = input length
+                            N = batch size
+                            log probability of the outputs (e.g. torch.log_softmax of logits)
+        targets (N, S): S = maximum number of characters in target sequences
+        force_emits (N, T): sequence of ctc states that should be occur given times
+                            that is, if force_emits is state s at time t, only ctc paths
+                            that pass state s at time t will be enabled, and will be zero out the rest
+                            this will be same as using cross entropy loss at time t
+                            value should be in range [-1, 2 * S + 1), valid ctc states
+                            -1 will means that it could be any states at time t (normal ctc paths)
+        input_lengths (N): lengths of log_prob
+        target_lengths (N): lengths of targets
+        blank (int): index of blank tokens (default 0)
+        reduction (str): reduction methods applied to the output. 'none' | 'mean' | 'sum'
+        zero_infinity (bool): if true imputer loss will zero out infinities.
+                              infinities mostly occur when it is impossible to generate
+                              target sequences using input sequences
+                              (e.g. input sequences are shorter than target sequences)
+    """
+
     loss = imputer_loss_fn(
         log_prob,
         targets,
@@ -130,6 +154,30 @@ def imputer_loss(
 
 class ImputerLoss(nn.Module):
     def __init__(self, blank=0, reduction="mean", zero_infinity=False):
+        """The Imputer loss
+
+        Parameters:
+            blank (int): index of blank tokens (default 0)
+            reduction (str): reduction methods applied to the output. 'none' | 'mean' | 'sum'
+            zero_infinity (bool): if true imputer loss will zero out infinities.
+                                infinities mostly occur when it is impossible to generate
+                                target sequences using input sequences
+                                (e.g. input sequences are shorter than target sequences)
+
+        Input:
+            log_prob (T, N, C): C = number of characters in alphabet including blank
+                                T = input length
+                                N = batch size
+                                log probability of the outputs (e.g. torch.log_softmax of logits)
+            targets (N, S): S = maximum number of characters in target sequences
+            force_emits (N, T): sequence of ctc states that should be occur given times
+                            that is, if force_emits is state s at time t, only ctc paths
+                            that pass state s at time t will be enabled, and will be zero out the rest
+                            this will be same as using cross entropy loss at time t
+                            value should be in range [-1, 2 * S + 1), valid ctc states
+                            -1 will means that it could be any states at time t (normal ctc paths)
+            input_lengths (N): lengths of log_prob
+            target_lengths (N): lengths of targets"""
         super().__init__()
 
         self.blank = blank
@@ -236,6 +284,26 @@ def ctc_decode(seq, blank=0):
 def best_alignment(
     log_prob, targets, input_lengths, target_lengths, blank=0, zero_infinity=False
 ):
+    """Get best alignment (maximum probability sequence of ctc states)
+       conditioned on log probabilities and target sequences
+
+    Input:
+        log_prob (T, N, C): C = number of characters in alphabet including blank
+                            T = input length
+                            N = batch size
+                            log probability of the outputs (e.g. torch.log_softmax of logits)
+        targets (N, S): S = maximum number of characters in target sequences
+        input_lengths (N): lengths of log_prob
+        target_lengths (N): lengths of targets
+        blank (int): index of blank tokens (default 0)
+        zero_infinity (bool): if true imputer loss will zero out infinities.
+                            infinities mostly occur when it is impossible to generate
+                            target sequences using input sequences
+                            (e.g. input sequences are shorter than target sequences)
+
+    Output:
+        best_aligns (List[List[int]]): sequence of ctc states that have maximum probabilties
+                                       given log probabilties, and compatible with target sequences"""
     nll, log_alpha, alignment = imputer.best_alignment(
         log_prob, targets, input_lengths, target_lengths, blank, zero_infinity
     )
